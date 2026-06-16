@@ -92,7 +92,7 @@ void mostrar_texto(){
         printf("Seu texto atual: \n");
         int contador = 1;
         while (atual != NULL){
-            printf("%d: %s", contador, atual->conteudo);
+            printf("Linha %d: %s", contador, atual->conteudo);
             atual = atual->proxima;
             contador++;
         }
