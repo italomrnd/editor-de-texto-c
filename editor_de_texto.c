@@ -30,7 +30,8 @@ void menu_principal(){
         printf("2 - Abrir arquivo existente\n");
         printf("3 - Editar arquivo aberto\n");
         printf("4 - Salvar arquivo atual\n");
-        printf("5 - Sair do editor de texto\n");
+        printf("5 - Deletar arquivo\n");
+        printf("6 - Sair do editor de texto\n");
         printf("Escolha a função a ser utilizada: \n");
         scanf(" %c", &escolha); // preferi ler assim porque ele não entendia letras como escolhas inválidas
         getchar();
@@ -49,6 +50,9 @@ void menu_principal(){
                 salvar_arquivo();
                 break;
             case '5':
+                deletar_arquivo();
+                break;
+            case '6':
                 sair();
                 break;
             default:
@@ -56,11 +60,14 @@ void menu_principal(){
                 printf("Pressione Enter para continuar\n");
                 getchar(); 
         }
-    } while (escolha != '5'); 
+    } while(escolha != '6'); 
 }
 
 void novo_arquivo(){
     limpar_terminal();
+
+    strcpy(arquivo_atual, "");
+
     // limpando o buffer para um novo arquivo
     Linha* atual = inicio_do_texto;    
     while (atual != NULL){
@@ -214,6 +221,36 @@ fclose(arquivo);
 printf("Arquivo '%s' salvo com sucesso! Pressione Enter para continuar.\n", arquivo_atual);
 getchar();
 }
+
+void deletar_arquivo(){
+    limpar_terminal();
+    char arquivo_a_deletar[101];
+    printf("Deletar arquivo\n");
+    printf("Digite o nome do arquivo que deseja apagar: \n");
+    scanf("%s", arquivo_a_deletar);
+    getchar();
+
+    if (remove(arquivo_a_deletar) == 0){
+        printf("O arquivo '%s' foi deletado com sucesso \n", arquivo_a_deletar);
+        // se o arquivo deletado foi o que estava aberto, limpamos o editor
+        if (strcmp(arquivo_atual, arquivo_a_deletar) == 0){
+            Linha* atual = inicio_do_texto;
+            while (atual != NULL){
+                Linha *proxima = atual->proxima;
+                free(atual);
+                atual = proxima;
+            }
+            inicio_do_texto = NULL;
+            fim_do_texto = NULL;
+            strcpy(arquivo_atual, "");
+        }
+    }
+    else{
+        printf("Não foi possível deletar o arquivo.\n");
+    }
+    printf("Pressione Enter para voltar ao menu\n");
+    getchar();
+}   
 
 void editar_arquivo(){
     limpar_terminal();
