@@ -9,44 +9,46 @@ typedef struct Linha{
 
 Linha* inicio_do_texto = NULL;
 Linha* fim_do_texto = NULL;
+char arquivo_atual[256] = "";
 
-void criar_novo_arquivo();
+void novo_arquivo();
 void abrir_arquivo();
 void salvar_arquivo();
+void editar_arquivo();
+void deletar_arquivo();
 void sair();
 void limpar_terminal();
 void mostrar_texto();
 
 void menu_principal(){
-    int escolha;
+    char escolha;
     do{
         limpar_terminal();
         printf("Editor de texto\n");
         printf("=============== \n");
         printf("1 - Criar um novo arquivo\n");
         printf("2 - Abrir arquivo existente\n");
-        printf("3 - Salvar arquivo\n");
-        printf("4 - Mostrar texto na tela\n");
+        printf("3 - Editar arquivo aberto\n");
+        printf("4 - Salvar arquivo atual\n");
         printf("5 - Sair do editor de texto\n");
         printf("Escolha a função a ser utilizada: \n");
-        scanf("%d", &escolha);
-        
+        scanf(" %c", &escolha); // preferi ler assim porque ele não entendia letras como escolhas inválidas
         getchar();
 
         switch(escolha){
-            case 1:
-                criar_novo_arquivo();
+            case '1':
+                novo_arquivo();
                 break;
-            case 2:     
+            case '2':     
                 abrir_arquivo();
                 break;
-            case 3:
+            case '3':
+                editar_arquivo();
+                break;
+            case '4':
                 salvar_arquivo();
                 break;
-            case 4:
-                mostrar_texto();
-                break;
-            case 5:
+            case '5':
                 sair();
                 break;
             default:
@@ -54,32 +56,61 @@ void menu_principal(){
                 printf("Pressione Enter para continuar\n");
                 getchar(); 
         }
-    } while (escolha != 5);
+    } while (escolha != '5'); 
 }
 
-void criar_novo_arquivo(){
-    Linha* nova_linha = malloc(sizeof(Linha)); 
-    
-    if(nova_linha == NULL){
-        printf("Não há memória disponível no sistema\n");
-        return;
+void novo_arquivo(){
+    limpar_terminal();
+    // limpando o buffer para um novo arquivo
+    Linha* atual = inicio_do_texto;    
+    while (atual != NULL){
+        Linha* proxima = atual->proxima;
+        free(atual);
+        atual = proxima;
     }
-    nova_linha->proxima = NULL;
+    inicio_do_texto = NULL;
+    fim_do_texto = NULL;
+    printf("--- CRIANDO UM NOVO ARQUIVO DE TEXTO \n");
+    printf("Digite o seu texto linha por linha. \n");
+    printf("Digite FIM em uma linha isolada para encerrar o texto\n");
 
-    printf("Digite o texto da nova linha (máx. 256 caracteres): \n");
-    fgets(nova_linha->conteudo, sizeof(nova_linha->conteudo), stdin);
-    
-    if (inicio_do_texto == NULL){
-        inicio_do_texto = nova_linha;
-        fim_do_texto = nova_linha;
+    // loop para digitar várias linhas seguidas
+    while (1){
+        char conteudo_da_linha[256];
+        printf("> ");
+        fgets(conteudo_da_linha, sizeof(conteudo_da_linha), stdin);
+
+        if (strcmp(conteudo_da_linha, "FIM\n") == 0)
+            break;
+
+        // aloca memória para a nova linha digitada
+        Linha* nova_linha = malloc(sizeof(Linha));
+        if (nova_linha == NULL){
+            printf("Erro na criação de uma nova linha\n");
+            return;
+        }
+        // preenche os nós da lista ligada com o conteudo digitado pelo usuario no teclado
+        strcpy(nova_linha->conteudo, conteudo_da_linha);
+        nova_linha->proxima = NULL;
+        
+        if (inicio_do_texto == NULL){
+            inicio_do_texto = nova_linha;
+            fim_do_texto = nova_linha;
+        }
+        else{
+            fim_do_texto->proxima = nova_linha;
+            fim_do_texto = nova_linha;
+        }
+        
     }
-    else{
-        fim_do_texto->proxima = nova_linha;
-        fim_do_texto = nova_linha;
-    }
-    printf("Linha salva com sucesso\n");
-    printf("Pressione Enter para retornar ao menu\n");
+    // salva o que o usuário escreve
+    char responder;
+    printf("Texto finalizado. Deseja salvar esse arquivo? (s/n): ");
+    scanf(" %c", &responder);
     getchar();
+    
+    if (responder == 'S' || responder =='s')
+        salvar_arquivo();
 }   
 
 void mostrar_texto(){
@@ -103,6 +134,7 @@ void mostrar_texto(){
 }
 
 void abrir_arquivo(){
+    limpar_terminal();
     char nome_do_arquivo[101];
     char conteudo_linha[256];
     
@@ -113,8 +145,12 @@ void abrir_arquivo(){
     FILE* arquivo = fopen(nome_do_arquivo, "r"); // r de read, afinal leremos o arquivo
     if (arquivo == NULL){
         printf("Arquivo nao encontrado\n");
+        printf("Pressione Enter para voltar ao menu\n");
+        getchar();
         return;
     }
+    //guardando o nome do arquivo que foi aberto
+    strcpy(arquivo_atual, nome_do_arquivo);
 
     // limpando o texto antigo da memória antes de carregar o novo usando free
     Linha* atual = inicio_do_texto;
@@ -150,33 +186,75 @@ void abrir_arquivo(){
     printf("Arquivo carregado com sucesso\n");
     printf("Pressione Enter para continuar\n");
     getchar();
+    limpar_terminal();
     mostrar_texto();
 }
 
 void salvar_arquivo(){
-    char nome_do_arquivo[101];
-    FILE *arquivo;
-
+// se não tiver nenhum arquivo aberto na memória, peço o nome pela primeira vez
+if (strlen(arquivo_atual) == 0){
     printf("Digite o nome do arquivo para salvar (ex: texto.txt): \n");
-    scanf("%s", nome_do_arquivo);
-    getchar();
+    scanf("%s", arquivo_atual); // guardando na variável local
+    getchar(); 
+}
 
-    arquivo = fopen(nome_do_arquivo, "w");
-    
-    if (arquivo == NULL){
-        printf("Erro ao abrir/criar arquivo\n");
+FILE *arquivo = fopen(arquivo_atual, "w");
+
+if (arquivo == NULL){
+    printf("Erro ao abrir/criar arquivo\n");
+    return;
+}
+
+Linha* atual = inicio_do_texto;
+while (atual != NULL){
+    fprintf(arquivo, "%s", atual->conteudo);    
+    atual = atual->proxima;
+}
+fclose(arquivo);
+printf("Arquivo '%s' salvo com sucesso! Pressione Enter para continuar.\n", arquivo_atual);
+getchar();
+}
+
+void editar_arquivo(){
+    limpar_terminal();
+    if (inicio_do_texto == NULL){
+        printf("Não há linhas para editar: o arquivo é vazio\n");
+        printf("Pressione Enter para continuar...\n");
+        getchar();
         return;
     }
 
-    Linha* atual = inicio_do_texto;
-    while (atual != NULL){
-        fprintf(arquivo, "%s", atual->conteudo);    
-        atual = atual->proxima;
-    }
-    fclose(arquivo);
-    printf("Arquivo salvo com sucesso, aperte Enter para continuar\n");
+    // mostra o texto para o usuário saber qual linha escolher
+    mostrar_texto();
+    printf("----------------------\n");
+
+    int numero_linha;
+    printf("Digite o número da linha que deseja alterar: ");
+    scanf("%d", &numero_linha);
     getchar();
+    
+    // caminha na lista até achar a linha escolhida
+    Linha* atual = inicio_do_texto;
+    int contador = 1;
+    while (atual != NULL && contador < numero_linha){
+        atual = atual->proxima;
+        contador++;
+    }
+
+    //checando se a linha de fato existe
+    if (atual == NULL || numero_linha <= 0){
+        printf("Linha inválida!\n");
+    }
+    else{
+        printf("Digite o novo texto para a linha %d:\n> ", numero_linha);
+        fgets(atual->conteudo, sizeof(atual->conteudo), stdin);
+        printf("Linha editada com sucesso!\n");
+
+        printf("Gravando alterações...\n ");
+        salvar_arquivo(); // a funcao salvar_arquivo já tem getchar
+    }   
 }
+
 
 void sair(){
     printf("Até a próxima!\n");
