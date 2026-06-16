@@ -2,6 +2,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+typedef struct Linha{
+    char conteudo[256];
+    struct Linha* proxima;
+}Linha;
+
 char memoria[1001] = "";
 
 void criar_novo_arquivo();
@@ -29,7 +34,7 @@ void menu_principal(){
             case 1:
                 criar_novo_arquivo();
                 break;
-            case 2: 
+            case 2:     
                 abrir_arquivo();
                 break;
             case 3:
@@ -113,7 +118,7 @@ void sair(){
 }
 
 void limpar_terminal(){
-    #ifdef _WIN32
+    #ifdef _WIN32   
         system("cls");  
     #else   
         system("clear");
